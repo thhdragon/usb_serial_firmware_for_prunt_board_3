@@ -50,9 +50,7 @@ void usb_serial_impl::on_usb_configured()
     qsb_dev_ep_setup(usb_device, DATA_IN_1, QSB_ENDPOINT_ATTR_BULK, TX_USB_BUF_SIZE, usb_data_in_cb);
     qsb_dev_ep_setup(usb_device, COMM_IN_1, QSB_ENDPOINT_ATTR_INTERRUPT, 16, usb_comm_in_cb);
 
-    // assert DTR
     uart.enable();
-    uart.set_dtr(true);
 }
 
 void usb_serial_impl::on_usb_data_received(qsb_device *dev)
@@ -193,14 +191,12 @@ invalid_param:
 
 void usb_serial_impl::set_control_line_state(uint16_t state)
 {
-    uart.set_dtr((state & 1) != 0);
+    (void)state;
 }
 
 uint16_t usb_serial_impl::serial_state()
 {
     uint16_t status = (uint16_t)pending_interrupt;
-    if (uart.dcd()) status |= 1;
-    if (uart.dsr()) status |= 2;
     return status;
 }
 

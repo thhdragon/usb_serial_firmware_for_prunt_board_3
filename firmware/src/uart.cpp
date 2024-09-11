@@ -29,63 +29,8 @@ void uart_impl::init()
 
     // Configure RX/TXpins
     gpio_set(USART_PORT, USART_TX_GPIO);
-#if defined(STM32F0)
     gpio_mode_setup(USART_PORT, GPIO_MODE_AF, GPIO_PUPD_PULLUP, USART_TX_GPIO | USART_RX_GPIO);
     gpio_set_af(USART_PORT, GPIO_AF1, USART_TX_GPIO | USART_RX_GPIO);
-#elif defined(STM32F1)
-    gpio_set_mode(USART_PORT, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, USART_TX_GPIO);
-    gpio_set_mode(USART_PORT, GPIO_MODE_INPUT, GPIO_CNF_INPUT_FLOAT, USART_RX_GPIO);
-#endif
-
-    // configure RTS/CTS
-    rcc_periph_clock_enable(RTS_PORT_RCC);
-    rcc_periph_clock_enable(CTS_PORT_RCC);
-
-    gpio_set(RTS_PORT, RTS_PIN); // initial state: not asserted
-
-#if defined(STM32F0)
-    gpio_mode_setup(RTS_PORT, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, RTS_PIN);
-    gpio_mode_setup(CTS_PORT, GPIO_MODE_AF, GPIO_PUPD_PULLDOWN, CTS_PIN);
-    gpio_set_af(CTS_PORT, GPIO_AF1, CTS_PIN);
-#elif defined(STM32F1)
-    gpio_set_mode(RTS_PORT, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_PUSHPULL, RTS_PIN);
-    gpio_set_mode(CTS_PORT, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN, CTS_PIN);
-	gpio_clear(CTS_PORT, CTS_PIN); // pull down
-#endif
-
-    // configure RX/TX LEDs
-    rcc_periph_clock_enable(LED_RX_PORT_RCC);
-    rcc_periph_clock_enable(LED_TX_PORT_RCC);
-
-    gpio_clear(LED_RX_PORT, LED_RX_PIN);
-    gpio_clear(LED_TX_PORT, LED_TX_PIN);
-
-#if defined(STM32F0)
-    gpio_mode_setup(LED_RX_PORT, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, LED_RX_PIN);
-    gpio_mode_setup(LED_TX_PORT, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, LED_TX_PIN);
-#elif defined(STM32F1)
-    gpio_set_mode(LED_RX_PORT, GPIO_MODE_OUTPUT_2_MHZ, GPIO_CNF_OUTPUT_PUSHPULL, LED_RX_PIN);
-    gpio_set_mode(LED_TX_PORT, GPIO_MODE_OUTPUT_2_MHZ, GPIO_CNF_OUTPUT_PUSHPULL, LED_TX_PIN);
-#endif
-
-    // configure DTR/DSR/DCD
-    rcc_periph_clock_enable(DTR_PORT_RCC);
-    rcc_periph_clock_enable(DSR_PORT_RCC);
-    rcc_periph_clock_enable(DCD_PORT_RCC);
-
-    gpio_set(DTR_PORT, DTR_PIN); // initial state: not asserted
-
-#if defined(STM32F0)
-    gpio_mode_setup(DTR_PORT, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, DTR_PIN);
-    gpio_mode_setup(DSR_PORT, GPIO_MODE_INPUT, GPIO_PUPD_PULLDOWN, DSR_PIN);
-    gpio_mode_setup(DCD_PORT, GPIO_MODE_INPUT, GPIO_PUPD_PULLDOWN, DCD_PIN);
-#elif defined(STM32F1)
-    gpio_set_mode(DTR_PORT, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_PUSHPULL, DTR_PIN);
-    gpio_set_mode(DSR_PORT, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN, DSR_PIN);
-	gpio_clear(DSR_PORT, DSR_PIN); // pull down
-    gpio_set_mode(DCD_PORT, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN, DCD_PIN);
-	gpio_clear(DCD_PORT, DCD_PIN); // pull down
-#endif
 }
 
 void uart_impl::enable()
@@ -94,11 +39,6 @@ void uart_impl::enable()
     tx_buf_head = tx_buf_tail = 0;
     tx_size = 0;
     rx_buf_tail = 0;
-    rx_led_timeout_active = tx_led_timeout_active = false;
-    rx_led_head = 0;
-
-    gpio_set(RTS_PORT, RTS_PIN); // initial state: not asserted
-    gpio_set(DTR_PORT, DTR_PIN); // initial state: not asserted
 
     // configure TX DMA
     rcc_periph_clock_enable(USART_DMA_RCC);
@@ -147,11 +87,7 @@ void uart_impl::poll()
     start_transmission();
 
     // RX side
-    update_rts();
     check_rx_overrun();
-
-    // other stuff
-    update_leds();
 }
 
 void uart_impl::transmit(const uint8_t *data, size_t len)
@@ -210,10 +146,6 @@ void uart_impl::start_transmission()
 
     // start transmission
     dma_enable_channel(USART_DMA, USART_DMA_TX_CHAN);
-
-    // turn on TX LED
-    tx_led_timeout_active = false;
-    gpio_set(LED_TX_PORT, LED_TX_PIN);
 }
 
 void uart_impl::poll_tx_complete()
@@ -233,10 +165,6 @@ void uart_impl::poll_tx_complete()
 
     // Disable DMA    
     dma_disable_channel(USART_DMA, USART_DMA_TX_CHAN);
-
-    // Turn off LED in 100ms
-    tx_led_timeout_active = true;
-    tx_led_off_timeout = millis() + 100;
 }
 
 size_t uart_impl::copy_rx_data(uint8_t *data, size_t len)
@@ -327,59 +255,6 @@ size_t uart_impl::tx_data_avail() {
         return tail - head - 1;    
 }
 
-
-void uart_impl::set_dtr(bool asserted)
-{
-    if (asserted)
-        gpio_clear(DTR_PORT, DTR_PIN); // active low
-    else
-        gpio_set(DTR_PORT, DTR_PIN);    
-}
-
-bool uart_impl::dsr()
-{
-    return gpio_get(DSR_PORT, DSR_PIN) == 0;
-}
-
-bool uart_impl::dcd()
-{
-    return gpio_get(DCD_PORT, DCD_PIN) == 0;
-}
-
-void uart_impl::update_leds()
-{
-    // check for TX LED timeout
-    if (tx_led_timeout_active && has_expired(tx_led_off_timeout)) {
-        gpio_clear(LED_TX_PORT, LED_TX_PIN);
-        tx_led_timeout_active = false;
-    }
-
-    // check for RX LED timeout
-    if (rx_led_timeout_active && has_expired(rx_led_off_timeout)) {
-        gpio_clear(LED_RX_PORT, LED_RX_PIN);
-        rx_led_timeout_active = false;
-    }
-
-    // check for new received data (relevant for LED only)
-    int buf_head = UART_RX_BUF_LEN - dma_get_number_of_data(USART_DMA, USART_DMA_RX_CHAN);
-    if (buf_head != rx_led_head) {
-        // turn on RX LED and set timeout of 100ms
-        gpio_set(LED_RX_PORT, LED_RX_PIN);
-        rx_led_timeout_active = true;
-        rx_led_off_timeout = millis() + 100;
-        rx_led_head = buf_head;
-    }
-}
-
-void uart_impl::update_rts()
-{
-    bool asserted = (int)rx_data_len() < rx_high_water_mark;
-    if (asserted)
-        gpio_clear(RTS_PORT, RTS_PIN);
-    else
-        gpio_set(RTS_PORT, RTS_PIN);
-}
-
 static const uint32_t stopbits_enum_to_uint32[] = {
     USART_STOPBITS_1,
     USART_STOPBITS_1_5,
@@ -414,8 +289,6 @@ void uart_impl::set_baudrate(int baud)
 {
     _baudrate = baud;
 
-#if defined(STM32F0)
-
 	uint32_t clock = rcc_apb1_frequency;
 	if ((USART == USART1) || (USART == USART6)) {
 		clock = rcc_apb2_frequency;
@@ -445,28 +318,6 @@ void uart_impl::set_baudrate(int baud)
     }
 
     USART_BRR(USART) = brr;
-
-#else
-	uint32_t clock = rcc_apb1_frequency;
-	if (USART == USART1)
-		clock = rcc_apb2_frequency;
-
-    uint32_t brr = (clock + baud / 2) / baud;
-
-    if (brr > 0xffff) {
-        // increase too low bitrate
-        brr = 0xffff;
-        _baudrate = (clock + 0x8fff) / 0xffff;
-    }
-
-    if (brr < 16) {
-        // select fastest bitrate possible
-        brr = 16;
-        _baudrate = clock / 16;
-    }
-
-	USART_BRR(USART) = brr;
-#endif
 
     tx_max_chunk_size = _baudrate / 10000;
     if (tx_max_chunk_size < 16)

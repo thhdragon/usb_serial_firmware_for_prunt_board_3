@@ -96,27 +96,6 @@ public:
     size_t tx_data_avail();
 
     /**
-     * @brief Sets DTR (output signal)
-     * 
-     * @param asserted `true` if asserted, `false` if not asserted
-     */
-    void set_dtr(bool asserted);
-
-    /**
-     * @brief Returns if DSR (input signal) is asserted
-     *
-     * @return `true` if asserted, `false` otherwise
-     */
-    bool dsr();
-
-    /**
-     * @brief Returns if DCD (input signal) is asserted
-     *
-     * @return `true` if asserted, `false` otherwise
-     */
-    bool dcd();
-
-    /**
      * @brief Sets the line coding.
      * 
      * @param baudrate baud rate, in bps
@@ -171,17 +150,6 @@ private:
      */
     void check_rx_overrun();
 
-    /// Update (turn on/off) the RX/TX LEDs if needed
-    void update_leds();
-
-    /**
-     * @brief Updates RTS (output signal)
-     * 
-     * The output signal is asserted if the receive buffer has room for more data
-     * (is below the high-water mark).
-     */
-    void update_rts();
-
     /**
      * @brief Sets the baudrate
      * 
@@ -234,11 +202,6 @@ private:
     uart_stopbits _stopbits;
     uart_parity _parity;
 
-    bool rx_led_timeout_active;
-    bool tx_led_timeout_active;
-    uint32_t rx_led_off_timeout;
-    uint32_t tx_led_off_timeout;
-    int rx_led_head;
     int rx_high_water_mark;
     int tx_max_chunk_size;
 

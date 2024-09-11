@@ -13,10 +13,8 @@
 #include "usb_cdc.h"
 #include "usb_conf.h"
 #include "usb_serial.h"
-#if defined(STM32F0)
 #include <libopencm3/stm32/crs.h>
 #include <libopencm3/stm32/syscfg.h>
-#endif
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/rcc.h>
 #include "qsb_device.h"
@@ -89,26 +87,18 @@ void usb_cdc_init()
 	rcc_periph_clock_enable(RCC_USB);
 	rcc_periph_clock_enable(USB_PORT_RCC);
 
-#if defined(STM32F0)
 	crs_autotrim_usb_enable();
-	rcc_set_usbclk_source(RCC_HSI48);
-#endif
+	rcc_set_usbclk_source(RCC_PLL);
 
-#if defined(STM32F042F6)
 	// Remap pins PA11/PA12
 	rcc_periph_clock_enable(RCC_SYSCFG_COMP);
 	SYSCFG_CFGR1 |= SYSCFG_CFGR1_PA11_PA12_RMP;
-#endif
 
 	// reset USB peripheral
 	rcc_periph_reset_pulse(RST_USB);
 
 	// Pull USB D+ low for 80ms to trigger device reenumeration
-#if defined(STM32F0)
 	gpio_mode_setup(USB_DP_PORT, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, USB_DP_PIN);
-#elif defined(STM32F1)
-	gpio_set_mode(USB_DP_PORT, GPIO_MODE_OUTPUT_10_MHZ, GPIO_CNF_OUTPUT_PUSHPULL, USB_DP_PIN);
-#endif
 	gpio_clear(USB_DP_PORT, USB_DP_PIN);
 	delay(80);
 
