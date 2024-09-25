@@ -16,8 +16,8 @@
 #include "qsb_cdc.h"
 #include <string.h>
 
-#define USB_VID 0x1209
-#define USB_PID 0x8048
+#define USB_VID 0x0483
+#define USB_PID 0xA4F6
 #define USB_DEVICE_REL 0x0120
 
 #define INTF_COMM 0 //  COMM must be immediately before DATA because of Associated Interface Descriptor.
@@ -28,12 +28,12 @@
 static uint8_t usbd_control_buffer[USB_CONTROL_BUF_SIZE] __attribute__((aligned(4)));
 
 static const char * const usb_strings[] = {
-	"Codecrete",           //  USB Manufacturer
-	"USB Serial",          //  USB Product
+	"Prunt 3D",           //  USB Manufacturer
+	"Prunt Board 2",          //  USB Product
 	qsb_serial_num,        //  Serial number
 	"Virtual Serial Port", //  Interface assocation
-	"USB Serial COMM 1",   //  Communication interface
-	"USB Serial DATA 1",   //  Data interface
+	"Prunt Board 2 COMM 1",   //  Communication interface
+	"Prunt Board 2 DATA 1",   //  Data interface
 };
 
 enum usb_strings_index
