@@ -86,29 +86,18 @@
 
 static const char* hex_chars = "0123456789ABCDEF";
 
-char qsb_serial_num[9];
+char qsb_serial_num[25];
 
 const char* qsb_serial_num_init(void) {
     // get unique device ID
     const uint8_t* uid = (const uint8_t*)QSB_UID_BASE;
 
-    // hash unique device ID (Jenkins OAAT)
-    uint32_t hash = 0;
-    for (int i = 0; i < 12; i++) {
-        hash += uid[i];
-        hash += hash << 10;
-        hash ^= hash >> 6;
-    }
-    hash += hash << 3;
-    hash ^= hash >> 11;
-    hash += hash << 15;
-
     // convert to ASCII string (hex)
-    for (int i = 0; i < 8; i++) {
-        qsb_serial_num[i] = hex_chars[hash & 0x0f];
-        hash >>= 4;
+    for (int i = 0; i < 12; i++) {
+        qsb_serial_num[i * 2] = hex_chars[uid[i] & 0x0f];
+        qsb_serial_num[i * 2 + 1] = hex_chars[(uid[i] >> 4) & 0x0f];
     }
-    qsb_serial_num[8] = 0;
+    qsb_serial_num[24] = 0;
 
     return qsb_serial_num;
 }

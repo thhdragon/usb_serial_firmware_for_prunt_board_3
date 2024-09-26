@@ -439,16 +439,16 @@ uint8_t qsb_dev_ep_stall_get(qsb_device* device, uint8_t addr);
  * strings table passed  to `qsb_dev_init()`. `qsb_serial_num_init()` must be called
  * to initialize it.
  * 
- * The serial number consists of 8 ASCII characters (plus a terminating null byte).
+ * The serial number consists of 24 ASCII characters (plus a terminating null byte).
  * 
  * @sa qsb_serial_num_init
  */
-extern char qsb_serial_num[9];
+extern char qsb_serial_num[25];
 
 /**
  * @brief Initializes the serial number dervied from unique device ID.
  * 
- * The serial number consists of 8 ASCII characters (plus a terminating null byte).
+ * The serial number consists of 24 ASCII characters (plus a terminating null byte).
  * 
  * The serial number is dervied fromm the Unique Device ID that is programmed at the
  * chip factory. For some processor families, the macro QSB_UID_BASE must be set
