@@ -29,11 +29,11 @@ static uint8_t usbd_control_buffer[USB_CONTROL_BUF_SIZE] __attribute__((aligned(
 
 static const char * const usb_strings[] = {
 	"Prunt 3D",           //  USB Manufacturer
-	"Prunt Board 2",          //  USB Product
+	"Prunt Board 3",          //  USB Product
 	qsb_serial_num,        //  Serial number
 	"Virtual Serial Port", //  Interface assocation
-	"Prunt Board 2 COMM 1",   //  Communication interface
-	"Prunt Board 2 DATA 1",   //  Data interface
+	"Prunt Board 3 COMM 1",   //  Communication interface
+	"Prunt Board 3 DATA 1",   //  Data interface
 };
 
 enum usb_strings_index
