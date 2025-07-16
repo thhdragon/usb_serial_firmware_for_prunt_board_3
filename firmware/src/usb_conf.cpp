@@ -1,10 +1,10 @@
 /*
  * USB Serial
- * 
+ *
  * Copyright (c) 2020 Manuel Bleichenbacher
  * Licensed under MIT License
  * https://opensource.org/licenses/MIT
- * 
+ *
  * USB device configuration
  */
 
@@ -17,7 +17,7 @@
 #include <string.h>
 
 #define USB_VID 0x0483
-#define USB_PID 0xA4F6
+#define USB_PID 0xA53B
 #define USB_DEVICE_REL 0x0100
 
 #define INTF_COMM 0 //  COMM must be immediately before DATA because of Associated Interface Descriptor.
